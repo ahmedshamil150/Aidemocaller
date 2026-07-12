@@ -70,16 +70,6 @@
       });
     }
 
-    function findVapiBtn() {
-      var all = document.querySelectorAll("button");
-      for (var i = 0; i < all.length; i++) {
-        var b = all[i];
-        if (b.id && b.id.toLowerCase().indexOf("vapi") !== -1) return b;
-        if (b.className && typeof b.className === "string" && b.className.toLowerCase().indexOf("vapi") !== -1) return b;
-      }
-      return null;
-    }
-
     function startCall() {
       if (callActive) return;
       callActive = true;
@@ -93,7 +83,7 @@
         return;
       }
 
-      // run() creates the assistant instance and mounts a Vapi button
+      // run() creates the VapiAssistant instance and mounts a Vapi button
       vapiAssistant = window.vapiSDK.run({
         apiKey: "21e4f330-20a7-4991-af8b-469904da82b1",
         assistant: "48120a37-f96a-47fb-af38-8f53d19739ce",
@@ -109,7 +99,7 @@
         if (!callActive) clearInterval(hideTimer);
       }, 100);
 
-      // Listen for events
+      // Listen for call-end to reset state
       if (vapiAssistant && typeof vapiAssistant.on === "function") {
         vapiAssistant.on("call-end", function() {
           callActive = false;
@@ -117,22 +107,30 @@
           setStatus("Call ended");
           vapiAssistant = null;
         });
-        vapiAssistant.on("call-start", function() {
-          setStatus("");
-        });
       }
 
-      // Click the Vapi button to start the call (the SDK sets up the click handler)
-      var checkBtn = setInterval(function() {
-        var btn = findVapiBtn();
-        if (btn) {
-          clearInterval(checkBtn);
-          btn.style.display = "none";
-          btn.click();
-        }
-      }, 200);
+      // Directly call start() on the assistant instance with the assistant ID
+      // The start() method creates a Daily.co call, joins it, and connects to Vapi
+      if (vapiAssistant && typeof vapiAssistant.start === "function") {
+        vapiAssistant.start("48120a37-f96a-47fb-af38-8f53d19739ce");
+      } else {
+        // Fallback: try clicking the Vapi button
+        var checkBtn = setInterval(function() {
+          var all = document.querySelectorAll("button");
+          for (var i = 0; i < all.length; i++) {
+            var b = all[i];
+            if (b.id && b.id.toLowerCase().indexOf("vapi") !== -1) {
+              clearInterval(checkBtn);
+              b.style.display = "none";
+              b.click();
+              return;
+            }
+          }
+          if (!callActive) clearInterval(checkBtn);
+        }, 200);
+      }
 
-      // Fallback timeout
+      // Clear connecting status after a few seconds
       setTimeout(function() {
         if (callActive) setStatus("");
       }, 5000);
