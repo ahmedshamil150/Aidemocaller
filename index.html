@@ -45,14 +45,11 @@
     <div id="call-status" class="status"></div>
   </div>
 
-  <script
-    src="https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js"
-  ></script>
+  <script src="https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js"></script>
 
   <script>
-    let isCallActive = false;
-    let isCallEnded = false;
-    let connectTimer = null;
+    let vapiAssistant = null;
+    let callActive = false;
 
     const btnCall = document.getElementById("btn-call");
     const btnEnd = document.getElementById("btn-end");
@@ -67,77 +64,81 @@
       btnEnd.disabled = !calling;
     }
 
+    function hideVapiElements() {
+      document.querySelectorAll('[id*="vapi"], [class*="vapi"]').forEach(function(el) {
+        el.style.display = "none";
+      });
+    }
+
     function startCall() {
-      if (isCallActive) return;
-      isCallActive = true;
-      isCallEnded = false;
+      if (callActive) return;
+      callActive = true;
       setButtons(true);
       setStatus("Connecting");
 
-      // Clear connecting after 4s (call should be active by then)
-      connectTimer = setTimeout(() => {
-        if (isCallActive && !isCallEnded) {
-          setStatus("");
-        }
-      }, 4000);
-
-      if (window.vapiSDK && typeof window.vapiSDK.run === "function") {
-        window.vapiSDK.run({
-          apiKey: "21e4f330-20a7-4991-af8b-469904da82b1",
-          assistant: "48120a37-f96a-47fb-af38-8f53d19739ce",
-          config: {
-            position: "bottom-right",
-            __internal: {
-              disableDefaultMicButton: true,
-              disableCallButton: true,
-              disableEndCallButton: true,
-            },
-          },
-        });
-
-        // Poll for call end by checking if the SDK exposes a state
-        // or just rely on the user pressing End Call
+      if (!window.vapiSDK || typeof window.vapiSDK.run !== "function") {
+        setStatus("SDK not loaded");
+        callActive = false;
+        setButtons(false);
+        return;
       }
+
+      // run() creates the assistant instance and mounts a button
+      vapiAssistant = window.vapiSDK.run({
+        apiKey: "21e4f330-20a7-4991-af8b-469904da82b1",
+        assistant: "48120a37-f96a-47fb-af38-8f53d19739ce",
+        config: {
+          position: "bottom-right",
+        },
+      });
+
+      // Hide any Vapi mounted elements
+      hideVapiElements();
+      var hideTimer = setInterval(function() {
+        hideVapiElements();
+        if (!callActive) clearInterval(hideTimer);
+      }, 100);
+
+      // Start the call via the assistant instance
+      if (vapiAssistant && typeof vapiAssistant.start === "function") {
+        vapiAssistant.start("48120a37-f96a-47fb-af38-8f53d19739ce");
+      }
+
+      // Listen for call-end events to reset state
+      if (vapiAssistant && typeof vapiAssistant.on === "function") {
+        vapiAssistant.on("call-end", function() {
+          callActive = false;
+          setButtons(false);
+          setStatus("Call ended");
+          vapiAssistant = null;
+        });
+        vapiAssistant.on("call-start", function() {
+          setStatus("");
+        });
+      }
+
+      // Fallback: clear connecting status after a few seconds
+      setTimeout(function() {
+        if (callActive) setStatus("");
+      }, 5000);
     }
 
     function endCall() {
-      if (!isCallActive) return;
-      isCallActive = false;
-      isCallEnded = true;
+      if (!callActive) return;
+      callActive = false;
       setButtons(false);
       setStatus("Call ended");
 
-      if (connectTimer) {
-        clearTimeout(connectTimer);
-        connectTimer = null;
+      if (vapiAssistant && typeof vapiAssistant.stop === "function") {
+        vapiAssistant.stop();
       }
 
-      try {
-        // Try to stop via vapiSDK
-        if (window.vapiSDK && typeof window.vapiSDK.stop === "function") {
-          window.vapiSDK.stop();
-        }
-        // Try to find the Vapi assistant instance and stop it
-        if (window.__vapi_assistant && typeof window.__vapi_assistant.stop === "function") {
-          window.__vapi_assistant.stop();
-        }
-      } catch(e) {
-        // ignore
-      }
+      vapiAssistant = null;
     }
 
-    window.addEventListener("load", () => {
+    window.addEventListener("load", function() {
       btnCall.addEventListener("click", startCall);
       btnEnd.addEventListener("click", endCall);
-
-      // Hide default Vapi floating button
-      const observer = new MutationObserver(() => {
-        const vapiBtn = document.querySelector('[id*="vapi"], [class*="vapi"]');
-        if (vapiBtn) {
-          vapiBtn.style.display = "none";
-        }
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
     });
   </script>
 </body>
