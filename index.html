@@ -70,6 +70,16 @@
       });
     }
 
+    function findVapiBtn() {
+      var all = document.querySelectorAll("button");
+      for (var i = 0; i < all.length; i++) {
+        var b = all[i];
+        if (b.id && b.id.toLowerCase().indexOf("vapi") !== -1) return b;
+        if (b.className && typeof b.className === "string" && b.className.toLowerCase().indexOf("vapi") !== -1) return b;
+      }
+      return null;
+    }
+
     function startCall() {
       if (callActive) return;
       callActive = true;
@@ -83,7 +93,7 @@
         return;
       }
 
-      // run() creates the assistant instance and mounts a button
+      // run() creates the assistant instance and mounts a Vapi button
       vapiAssistant = window.vapiSDK.run({
         apiKey: "21e4f330-20a7-4991-af8b-469904da82b1",
         assistant: "48120a37-f96a-47fb-af38-8f53d19739ce",
@@ -92,19 +102,14 @@
         },
       });
 
-      // Hide any Vapi mounted elements
+      // Hide Vapi elements
       hideVapiElements();
       var hideTimer = setInterval(function() {
         hideVapiElements();
         if (!callActive) clearInterval(hideTimer);
       }, 100);
 
-      // Start the call via the assistant instance
-      if (vapiAssistant && typeof vapiAssistant.start === "function") {
-        vapiAssistant.start("48120a37-f96a-47fb-af38-8f53d19739ce");
-      }
-
-      // Listen for call-end events to reset state
+      // Listen for events
       if (vapiAssistant && typeof vapiAssistant.on === "function") {
         vapiAssistant.on("call-end", function() {
           callActive = false;
@@ -117,7 +122,17 @@
         });
       }
 
-      // Fallback: clear connecting status after a few seconds
+      // Click the Vapi button to start the call (the SDK sets up the click handler)
+      var checkBtn = setInterval(function() {
+        var btn = findVapiBtn();
+        if (btn) {
+          clearInterval(checkBtn);
+          btn.style.display = "none";
+          btn.click();
+        }
+      }, 200);
+
+      // Fallback timeout
       setTimeout(function() {
         if (callActive) setStatus("");
       }, 5000);
