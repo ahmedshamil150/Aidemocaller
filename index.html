@@ -50,11 +50,7 @@
   </head>
   <body>
     <div class="card">
-      <h1>Hey Rayyan</h1>
-      <p>Just a quick voice demo. If the widget pops up in the corner, click it and say something natural like “hello” or “can you help me.”</p>
-      <div class="note">
-        If it does not hear you right away, let the browser use your microphone and try again. That usually fixes it.
-      </div>
+      <button id="start-call" type="button">Call</button>
     </div>
 
     <script
@@ -64,14 +60,24 @@
     ></script>
 
     <script>
+      function openVoiceDemo() {
+        if (window.vapiSDK && typeof window.vapiSDK.run === "function") {
+          window.vapiSDK.run({
+            apiKey: "21e4f330-20a7-4991-af8b-469904da82b1",
+            assistant: "48120a37-f96a-47fb-af38-8f53d19739ce",
+            config: {
+              position: "bottom-right",
+            },
+          });
+        }
+      }
+
       window.addEventListener("load", () => {
-        window.vapiSDK.run({
-          apiKey: "21e4f330-20a7-4991-af8b-469904da82b1",
-          assistant: "48120a37-f96a-47fb-af38-8f53d19739ce",
-          config: {
-            position: "bottom-right",
-          },
-        });
+        const button = document.getElementById("start-call");
+        if (button) {
+          button.addEventListener("click", openVoiceDemo);
+        }
+        openVoiceDemo();
       });
     </script>
   </body>
