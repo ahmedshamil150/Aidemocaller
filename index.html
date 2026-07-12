@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Assistant Test</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f3ee;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .card {
+        width: min(680px, 100%);
+        background: #fffdf8;
+        border: 1px solid #e6dfd2;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 1.7rem;
+        line-height: 1.2;
+      }
+
+      p {
+        margin: 10px 0 0;
+        line-height: 1.6;
+        color: #4b5563;
+      }
+
+      .note {
+        margin-top: 16px;
+        padding: 12px 14px;
+        background: #f9f6ef;
+        border: 1px solid #ebdfc6;
+        border-radius: 10px;
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Hey Rayyan</h1>
+      <p>Just a quick voice demo. If the widget pops up in the corner, click it and say something natural like “hello” or “can you help me.”</p>
+      <div class="note">
+        If it does not hear you right away, let the browser use your microphone and try again. That usually fixes it.
+      </div>
+    </div>
+
+    <script
+      src="https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js"
+      defer
+      async
+    ></script>
+
+    <script>
+      window.addEventListener("load", () => {
+        window.vapiSDK.run({
+          apiKey: "21e4f330-20a7-4991-af8b-469904da82b1",
+          assistant: "48120a37-f96a-47fb-af38-8f53d19739ce",
+          config: {
+            position: "bottom-right",
+          },
+        });
+      });
+    </script>
+  </body>
+</html>
