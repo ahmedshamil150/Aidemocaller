@@ -1,84 +1,133 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Assistant Test</title>
-    <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #f5f3ee;
-        color: #1f2937;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Call</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, sans-serif;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn {
+      border: 1px solid #888;
+      background: #eee;
+      cursor: pointer;
+      padding: 10px 24px;
+      font-size: 1rem;
+      border-radius: 6px;
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .status {
+      font-size: 0.9rem;
+      color: #555;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button id="btn-call" class="btn" type="button">Call</button>
+    <button id="btn-end" class="btn" type="button" disabled>End Call</button>
+    <div id="call-status" class="status"></div>
+  </div>
+
+  <script
+    src="https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js"
+    defer
+    async
+  ></script>
+
+  <script>
+    let vapiInstance = null;
+    let isCallActive = false;
+
+    const btnCall = document.getElementById("btn-call");
+    const btnEnd = document.getElementById("btn-end");
+    const statusEl = document.getElementById("call-status");
+
+    function setStatus(msg) {
+      statusEl.textContent = msg;
+    }
+
+    function setButtons(calling) {
+      btnCall.disabled = calling;
+      btnEnd.disabled = !calling;
+    }
+
+    function startCall() {
+      if (isCallActive) return;
+      isCallActive = true;
+      setButtons(true);
+      setStatus("Connecting");
+
+      if (window.vapiSDK && typeof window.vapiSDK.run === "function") {
+        vapiInstance = window.vapiSDK.run({
+          apiKey: "21e4f330-20a7-4991-af8b-469904da82b1",
+          assistant: "48120a37-f96a-47fb-af38-8f53d19739ce",
+          config: {
+            position: "bottom-right",
+          },
+        });
       }
 
-      .card {
-        width: min(680px, 100%);
-        background: #fffdf8;
-        border: 1px solid #e6dfd2;
-        border-radius: 16px;
-        padding: 28px;
-        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+      if (vapiInstance && typeof vapiInstance.on === "function") {
+        vapiInstance.on("call-start", () => {
+          setStatus("");
+        });
+        vapiInstance.on("call-end", () => {
+          isCallActive = false;
+          setButtons(false);
+          setStatus("Call ended");
+          vapiInstance = null;
+        });
+        vapiInstance.on("call-error", (error) => {
+          isCallActive = false;
+          setButtons(false);
+          setStatus("Call ended");
+          vapiInstance = null;
+        });
+      } else {
+        setTimeout(() => {
+          if (isCallActive) setStatus("");
+        }, 2000);
       }
+    }
 
-      h1 {
-        margin: 0 0 10px;
-        font-size: 1.7rem;
-        line-height: 1.2;
+    function endCall() {
+      if (!isCallActive) return;
+      if (vapiInstance && typeof vapiInstance.stop === "function") {
+        vapiInstance.stop();
+      } else if (window.vapiSDK && typeof window.vapiSDK.stop === "function") {
+        window.vapiSDK.stop();
       }
+      isCallActive = false;
+      setButtons(false);
+      setStatus("Call ended");
+      vapiInstance = null;
+    }
 
-      p {
-        margin: 10px 0 0;
-        line-height: 1.6;
-        color: #4b5563;
-      }
+    window.addEventListener("load", () => {
+      btnCall.addEventListener("click", startCall);
+      btnEnd.addEventListener("click", endCall);
 
-      .note {
-        margin-top: 16px;
-        padding: 12px 14px;
-        background: #f9f6ef;
-        border: 1px solid #ebdfc6;
-        border-radius: 10px;
-        font-size: 0.95rem;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <button id="start-call" type="button">Call</button>
-    </div>
-
-    <script
-      src="https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js"
-      defer
-      async
-    ></script>
-
-    <script>
-      function openVoiceDemo() {
-        if (window.vapiSDK && typeof window.vapiSDK.run === "function") {
-          window.vapiSDK.run({
-            apiKey: "21e4f330-20a7-4991-af8b-469904da82b1",
-            assistant: "48120a37-f96a-47fb-af38-8f53d19739ce",
-            config: {
-              position: "bottom-right",
-            },
-          });
-        }
-      }
-
-      window.addEventListener("load", () => {
-        const button = document.getElementById("start-call");
-        if (button) {
-          button.addEventListener("click", openVoiceDemo);
-        }
-        openVoiceDemo();
-      });
-    </script>
-  </body>
+      const style = document.createElement("style");
+      style.textContent = `#vapi-support-btn, [id*="vapi"], [class*="vapi"] { display: none !important; }`;
+      document.head.appendChild(style);
+    });
+  </script>
+</body>
 </html>
