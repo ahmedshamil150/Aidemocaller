@@ -47,13 +47,12 @@
 
   <script
     src="https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js"
-    defer
-    async
   ></script>
 
   <script>
-    let vapiInstance = null;
     let isCallActive = false;
+    let isCallEnded = false;
+    let connectTimer = null;
 
     const btnCall = document.getElementById("btn-call");
     const btnEnd = document.getElementById("btn-end");
@@ -71,62 +70,74 @@
     function startCall() {
       if (isCallActive) return;
       isCallActive = true;
+      isCallEnded = false;
       setButtons(true);
       setStatus("Connecting");
 
+      // Clear connecting after 4s (call should be active by then)
+      connectTimer = setTimeout(() => {
+        if (isCallActive && !isCallEnded) {
+          setStatus("");
+        }
+      }, 4000);
+
       if (window.vapiSDK && typeof window.vapiSDK.run === "function") {
-        vapiInstance = window.vapiSDK.run({
+        window.vapiSDK.run({
           apiKey: "21e4f330-20a7-4991-af8b-469904da82b1",
           assistant: "48120a37-f96a-47fb-af38-8f53d19739ce",
           config: {
             position: "bottom-right",
+            __internal: {
+              disableDefaultMicButton: true,
+              disableCallButton: true,
+              disableEndCallButton: true,
+            },
           },
         });
-      }
 
-      if (vapiInstance && typeof vapiInstance.on === "function") {
-        vapiInstance.on("call-start", () => {
-          setStatus("");
-        });
-        vapiInstance.on("call-end", () => {
-          isCallActive = false;
-          setButtons(false);
-          setStatus("Call ended");
-          vapiInstance = null;
-        });
-        vapiInstance.on("call-error", (error) => {
-          isCallActive = false;
-          setButtons(false);
-          setStatus("Call ended");
-          vapiInstance = null;
-        });
-      } else {
-        setTimeout(() => {
-          if (isCallActive) setStatus("");
-        }, 2000);
+        // Poll for call end by checking if the SDK exposes a state
+        // or just rely on the user pressing End Call
       }
     }
 
     function endCall() {
       if (!isCallActive) return;
-      if (vapiInstance && typeof vapiInstance.stop === "function") {
-        vapiInstance.stop();
-      } else if (window.vapiSDK && typeof window.vapiSDK.stop === "function") {
-        window.vapiSDK.stop();
-      }
       isCallActive = false;
+      isCallEnded = true;
       setButtons(false);
       setStatus("Call ended");
-      vapiInstance = null;
+
+      if (connectTimer) {
+        clearTimeout(connectTimer);
+        connectTimer = null;
+      }
+
+      try {
+        // Try to stop via vapiSDK
+        if (window.vapiSDK && typeof window.vapiSDK.stop === "function") {
+          window.vapiSDK.stop();
+        }
+        // Try to find the Vapi assistant instance and stop it
+        if (window.__vapi_assistant && typeof window.__vapi_assistant.stop === "function") {
+          window.__vapi_assistant.stop();
+        }
+      } catch(e) {
+        // ignore
+      }
     }
 
     window.addEventListener("load", () => {
       btnCall.addEventListener("click", startCall);
       btnEnd.addEventListener("click", endCall);
 
-      const style = document.createElement("style");
-      style.textContent = `#vapi-support-btn, [id*="vapi"], [class*="vapi"] { display: none !important; }`;
-      document.head.appendChild(style);
+      // Hide default Vapi floating button
+      const observer = new MutationObserver(() => {
+        const vapiBtn = document.querySelector('[id*="vapi"], [class*="vapi"]');
+        if (vapiBtn) {
+          vapiBtn.style.display = "none";
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
     });
   </script>
 </body>
